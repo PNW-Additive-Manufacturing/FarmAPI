@@ -1,0 +1,33 @@
+{
+  "profiles": {
+    "HTTP (Without BambuStudio on Windows)": {
+      "commandName": "Project",
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "CONFIG_PATH": "../config.json"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:5071"
+    },
+    "WSL (With BambuStudio)": {
+      "commandName": "WSL2",
+      "launchUrl": "http://localhost:5071/swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5071",
+        "CONFIG_PATH": "../config.json"
+      },
+      "distributionName": ""
+    }
+  },
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:51394/",
+      "sslPort": 44385
+    }
+  }
+}
