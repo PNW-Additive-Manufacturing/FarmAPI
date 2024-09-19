@@ -59,11 +59,6 @@ namespace FarmAPI.Machines
 
         public abstract string Model { get; }
 
-        /// <summary>
-        /// If the machine is currently printing but is doing some sort of preparation (calibration) before actually printing.
-        /// </summary>
-        public virtual string? IsPrintingPreparing { get; } = null;
-
         public int? Progress { get; protected set; }
 
         /// <summary>

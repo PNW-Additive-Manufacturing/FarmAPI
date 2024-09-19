@@ -3,8 +3,6 @@ using FarmAPI.Machines.BambuLab;
 using FarmAPI.Slicing.BambuStudio;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using System.Diagnostics;
-using System.IO.Compression;
 using System.Text.Json;
 
 namespace FarmAPI

@@ -67,12 +67,16 @@ namespace FarmAPI.Machines.BambuLab
                 await RebaseMachines();
             };
 
-            mqttClient.DisconnectedAsync += (ev) =>
+            mqttClient.DisconnectedAsync += async (ev) =>
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Disconnected from Bambu Lab MQTT!");
+                Console.WriteLine($"Disconnected from Bambu Lab MQTT at {DateTime.Now}!");
                 Console.ResetColor();
-                return Task.CompletedTask;
+
+                // Wait 5 seconds before we attempt to reconnect (Required to prevent spamming reconnections)
+                await Task.Delay(5000);
+
+                await mqttClient.ReconnectAsync();
             };
         }
 
