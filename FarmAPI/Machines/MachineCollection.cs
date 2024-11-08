@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using FarmAPI.Machines.BambuLab;
 
@@ -15,11 +16,18 @@ namespace FarmAPI.Machines
             this.Machines = new SortedDictionary<string, Machine>(machines.ToDictionary(m => m.Identifier));
         }
 
-        public (Machine, FilamentLocation)? FindAvailableMachineWithFilament(Filament filament)
+        public bool TryGetMachine(string identity, [NotNullWhen(true)] out Machine? machine)
+        {
+            return Machines.TryGetValue(identity, out machine);
+        }
+
+        public (Machine, FilamentLocation)? FindAvailableMachineWithFilament(MachineTechnology technology, Filament filament)
         {
             foreach (var machine in Machines.Values)
             {
-                if (machine.IsHealthy && machine.Status == MachineState.Idle)
+                if (machine.IsHealthy && machine.Technology == technology && machine.Status == MachineState.Idle 
+                    && machine.Features == MachineFeatures.Sliceable
+                    && machine.Features == MachineFeatures.Printable)
                 {
                     var locations = machine.LocateMatchingFilament(filament);
                     if (locations.Length > 0) return new(machine, locations.First());

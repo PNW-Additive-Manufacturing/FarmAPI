@@ -1,31 +1,28 @@
 ﻿
+using System.IO;
+using System.Reflection.PortableExecutable;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using FarmAPI.Slicing;
+using FarmAPI.Slicing.BambuStudio;
 using FluentFTP;
 using FluentFTP.GnuTLS;
 
 namespace FarmAPI.Machines.BambuLab
 {
-    public class BambuMachineConfiguration(string serialNumber, string accessCode, string ipAddress, string? nickname = null) : MachineConfiguration(MachineConfigurationKind.BambuLab)
-    {
-        public string SerialNumber { get; } = serialNumber;
-        public string AccessCode { get; } = accessCode;
-        public string IPAddress { get; } = ipAddress;
-        public string? Nickname { get; } = nickname;
-    }
+    public record BambuMachineConfiguration(string SerialNumber, string AccessCode, string IPAddress, string? Nickname = null) : MachineConfiguration(MachineConfigurationKind.BambuLab);
 
-    public class BambuMachine : Machine
+    public class BambuMachine : Machine, IMachineSliceable, IMachinePrintable
     {
-        public override string Identifier => this.Nickname ?? this.SerialNumber;
-
         public string SerialNumber { get; }
+
+        // BambuLab does not offer any other machine than FDM.
+        public override MachineTechnology Technology { get; } = MachineTechnology.FDM;
 
         public string AccessCode { get; }
 
         public string IPAddress { get; }
-
-        public string? Nickname { get; set; }
 
         public bool HasSDCard { get; protected set; }
 
@@ -188,7 +185,7 @@ namespace FarmAPI.Machines.BambuLab
                 {
                     string reason = failReasonElem.GetString()!;
 
-                    // 50348044 is cancelled by user.
+                    // 50348044 is canceled by user.
 
                     //if (string.IsNullOrEmpty(reason))
                     //{
@@ -197,7 +194,7 @@ namespace FarmAPI.Machines.BambuLab
                     //    State = BambuMachineState.Idle;
                     //}
 
-                    // fail_reason is "0" when an error has not occured.
+                    // fail_reason is "0" when an error has not occurred.
                     if (!string.Equals(reason, "0"))
                     {
                         //Debug($"Machine has failed with reason {reason}");
@@ -211,7 +208,7 @@ namespace FarmAPI.Machines.BambuLab
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.Write(this.ToString());
-                Console.Error.WriteLine($" An issue occured updating machine state!\n{ex}");
+                Console.Error.WriteLine($" An issue occurred updating machine state!\n{ex}");
                 Console.ResetColor();
             }
 
@@ -242,7 +239,7 @@ namespace FarmAPI.Machines.BambuLab
                     }
                     else
                     {
-                        Debug($"Unepxected AMS object structure!\n{amsElement}", ConsoleColor.Yellow);
+                        Debug($"Unexpected AMS object structure!\n{amsElement}", ConsoleColor.Yellow);
                     }
                 }
             }
@@ -250,13 +247,13 @@ namespace FarmAPI.Machines.BambuLab
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.Write(this.ToString());
-                Console.Error.WriteLine($" An issue occured updating AMS information!\n{ex}");
+                Console.Error.WriteLine($" An issue occurred updating AMS information!\n{ex}");
                 Console.ResetColor();
             }
 
             try
             {
-                // Somtimes the VT tray is present even with AMS? Only AMS would be able to be used then.
+                // Sometimes the VT tray is present even with AMS? Only AMS would be able to be used then.
                 if (printElement.TryGetProperty("vt_tray", out var vtTrayElem))
                 {
                     // The VT tray (virtual tray/slot) is the external filament holder.
@@ -269,7 +266,7 @@ namespace FarmAPI.Machines.BambuLab
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.Write(this.ToString());
-                Console.Error.WriteLine($" An issue occured updating VT Tray information!\n{ex}");
+                Console.Error.WriteLine($" An issue occurred updating VT Tray information!\n{ex}");
                 Console.ResetColor();
             }
         }
@@ -316,11 +313,6 @@ namespace FarmAPI.Machines.BambuLab
             }
         }
 
-        public override FilamentLocation[] LocateMatchingFilament(Filament filament)
-        {
-            return Filaments.Where(x => x.Value.Equals(filament)).Select(x => x.Key).ToArray();
-        }
-
         protected async Task<AsyncFtpClient> CreateFTPConnection()
         {
             var ftpClient = new AsyncFtpClient(this.IPAddress, "bblp", this.AccessCode, 990, new FtpConfig()
@@ -350,14 +342,37 @@ namespace FarmAPI.Machines.BambuLab
             // Yay we "completed" in time!
             if (uploadTask != FtpStatus.Success)
             {
-                throw new InvalidOperationException($"An issue occured uploading 3MF to {this}: {Enum.GetName(uploadTask)}");
+                throw new InvalidOperationException($"An issue occurred uploading 3MF to {this}: {Enum.GetName(uploadTask)}");
             }
         }
 
-        public override async Task Print(Stream dataStream, string filename, FilamentLocation filament)
+        public async Task<Stream> Slice(Stream modelStream, string fileName, SlicingOptions slicingOptions)
         {
-            Debug($"Printing {filename} using filament {filament}...", ConsoleColor.Yellow);
+            if (slicingOptions is not SlicingOptions.FDM FDMOptions)
+            {
+                throw new ArgumentException("Options must be FDM!", nameof(slicingOptions));
+            }
 
+            string modelFilePath = Paths.GetTempFileName("stl");
+            using (var modelFile = File.OpenWrite(modelFilePath))
+            {
+                // Copy content into a file which Bambu Studio can use.
+                await modelStream.CopyToAsync(modelFile);
+            }
+
+            var slicedFilePath = await Slicers.BambuStudio().Slice(this.Brand, this.Model, modelFilePath, FDMOptions);
+            return File.OpenRead(slicedFilePath);
+        }
+
+        public async Task<SlicedMetadata> ReadMetadata(Stream slicedStream)
+        {
+            return await Slicers.BambuStudio().ParseMetadata(slicedStream);
+        }
+
+        public async Task Print(Stream dataStream, string filename, FilamentLocation filament)
+        {
+
+            Debug($"Printing {filename} using filament {filament}...", ConsoleColor.Yellow);
             await Upload3MF(dataStream, filename);
 
             Debug($"Sending to {this} as {filename}!");
@@ -399,5 +414,6 @@ namespace FarmAPI.Machines.BambuLab
                 _ => new MachineSize(256, 256, 256)
             };
         }
+
     }
 }

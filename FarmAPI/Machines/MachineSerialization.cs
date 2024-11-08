@@ -1,4 +1,5 @@
 ﻿using FarmAPI.Machines.BambuLab;
+using FarmAPI.Machines.ELEGOO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -6,13 +7,14 @@ namespace FarmAPI.Machines
 {
     public enum MachineConfigurationKind
     {
-        BambuLab
+        BambuLab,
+        ELEGOO
     }
 
-    public class MachineConfiguration(MachineConfigurationKind kind)
+    public record MachineConfiguration(MachineConfigurationKind Kind)
     {
         [JsonConverter(typeof(JsonStringEnumConverter))]
-        public MachineConfigurationKind Kind { get; } = kind;
+        public MachineConfigurationKind Kind { get; } = Kind;
     }
 
     public class MachineFilamentsWithLocationConverter : JsonConverter<IDictionary<FilamentLocation, Filament>>
@@ -66,7 +68,8 @@ namespace FarmAPI.Machines
     {
         private static readonly Dictionary<MachineConfigurationKind, (Type, Type)> ConfigurationConstructors = new()
         {
-            { MachineConfigurationKind.BambuLab, (typeof(BambuMachineConfiguration), typeof(BambuMachine)) }
+            { MachineConfigurationKind.BambuLab, (typeof(BambuMachineConfiguration), typeof(BambuMachine)) },
+            { MachineConfigurationKind.ELEGOO, (typeof(ELEGOOMachineConfiguration), typeof(ELEGOOMachine)) }
         };
 
         private static Machine DeserializeElement(JsonElement element)

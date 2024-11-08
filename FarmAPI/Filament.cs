@@ -8,7 +8,7 @@
         public Filament(string material, string hexColor)
         {
             if (string.IsNullOrWhiteSpace(material)) throw new ArgumentException($"Filament Material cannot be null or empty!");
-            if (string.IsNullOrWhiteSpace(hexColor)) throw new ArgumentException($"Filamnet Color cannot be null or empty!");
+            if (string.IsNullOrWhiteSpace(hexColor)) throw new ArgumentException($"Filament Color cannot be null or empty!");
 
             // Bambu Lab appends FF to the end of the hex color code on their machines - we will use the same.
             if (hexColor.Length == 6) hexColor = $"{hexColor}FF";

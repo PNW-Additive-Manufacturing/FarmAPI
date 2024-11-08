@@ -3,10 +3,11 @@ using System.Text.Json.Serialization;
 
 namespace FarmAPI.Slicing
 {
-    public class GCodeMetadata
+    public class SlicedMetadata
     {
-        [JsonConverter(typeof(TimeSpanSecondConverter))]
-        [JsonPropertyName("durationAsSeconds")]
         public required TimeSpan Duration { get; init; }
+
+        [JsonPropertyName("weightInGrams")]
+        public required float Weight { get; init; }
     }
 }
