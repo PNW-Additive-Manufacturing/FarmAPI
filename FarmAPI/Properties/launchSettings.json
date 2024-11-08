@@ -5,7 +5,7 @@
       "launchUrl": "swagger",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "CONFIG_PATH": "../config.json"
+        "FARMAPI_CONFIG_PATH": "../../config.json"
       },
       "dotnetRunMessages": true,
       "applicationUrl": "http://localhost:5071"
@@ -16,7 +16,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ASPNETCORE_URLS": "http://localhost:5071",
-        "CONFIG_PATH": "../config.json"
+        "FARMAPI_CONFIG_PATH": "../../config.json"
       },
       "distributionName": ""
     }
