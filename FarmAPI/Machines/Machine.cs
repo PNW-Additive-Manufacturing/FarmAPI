@@ -48,7 +48,11 @@ namespace FarmAPI.Machines
         /// <summary>
         /// Prints (such as GCODE, 3MF or GOO) can be sent and started remotely through using the FarmAPI.
         /// </summary>
-        Printable
+        Printable,
+        /// <summary>
+        /// Machine can be paused, resumed, and stopped remotely.
+        /// </summary>
+        Controllable
     }
 
     public abstract class Machine : IComparer<Machine>
@@ -119,17 +123,19 @@ namespace FarmAPI.Machines
                     Type instanceType = this.GetType();
                     if (instanceType.GetInterface(nameof(IMachineFilamentMutable)) != null)
                     {
-
                         this.CachedFeatures |= MachineFeatures.FilamentMutable;
                     }
                     if (instanceType.GetInterface(nameof(IMachinePrintable)) != null)
                     {
-
                         this.CachedFeatures |= MachineFeatures.Printable;
                     }
                     if (instanceType.GetInterface(nameof(IMachineSliceable)) != null)
                     {
                         this.CachedFeatures |= MachineFeatures.Sliceable;
+                    }
+                    if (instanceType.GetInterface(nameof(IMachineControllable)) != null)
+                    {
+                        this.CachedFeatures |= MachineFeatures.Controllable;
                     }
                 }
                 return this.CachedFeatures!.Value;

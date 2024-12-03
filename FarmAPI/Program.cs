@@ -4,6 +4,7 @@ using FarmAPI.Slicing;
 using FarmAPI.Slicing.BambuStudio;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using System.IO;
 using System.Security.Principal;
 using System.Text.Json;
 using System.Xml;
@@ -28,14 +29,7 @@ namespace FarmAPI
 
             if (FarmAPIConfiguration.Machines.Machines.Any(m => m.Value is BambuMachine))
             {
-                try
-                {
-                    await ConnectToBambuMachines();
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception("Cannot connect to Bambu Machines:", ex);
-                }
+                await ConnectToBambuMachines();
             }
 
             var builder = WebApplication.CreateBuilder(args);
@@ -142,6 +136,61 @@ namespace FarmAPI
                     {
                         Success = false,
                         ex.Message
+                    });
+                }
+
+                return Results.Json(new
+                {
+                    Success = true
+                });
+            });
+
+            app.MapPost("/printers/{identity}/control/{action}", async ([FromRoute] string identity, [FromRoute] string action) =>
+            {
+                if (!FarmAPIConfiguration.Machines.TryGetMachine(identity, out var machine)) return Results.NotFound(new
+                {
+                    Succes = false
+                });
+
+                action = action.ToLower();
+
+                if (machine is IMachineControllable machineControllable)
+                {
+                    try
+                    {
+                        switch (action)
+                        {
+                            case "pause":
+                                await machineControllable.Pause();
+                                break;
+
+                            case "resume":
+                                await machineControllable.Resume();
+                                break;
+
+                            case "stop":
+                                await machineControllable.Stop();
+                                break;
+
+                            default:
+                                throw new NotSupportedException($"{action} is not supported!");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        return Results.Json(new
+                        {
+                            Succes = false,
+                            ex.Message
+                        });
+                    }
+                }
+                else
+                {
+                    return Results.Json(new
+                    {
+                        Success = false,
+                        Message = $"Machine does not support the CONTROLLABLE feature!"
                     });
                 }
 
@@ -260,10 +309,33 @@ namespace FarmAPI
     
         public static async Task ConnectToBambuMachines()
         {
-            // Setup the BambuLab MQTTConnectionPool with credentials from the Farm Config.
-            var credentials = await BambuCloudUtilities.FetchMQTTCredentials(FarmAPIConfiguration.BambuCloudCredentials ?? throw new Exception("BambuCloudCredentials must be provided!"));
+            string token;
+            
+            // Load previously used token.
+            try
+            {
+                using var tokenFile = new StreamReader(File.OpenRead(".bambuLabToken"));
+                token = tokenFile.ReadToEnd();
+                await BambuCloudUtilities.UseToken(token);
+            }
+            catch (Exception)
+            {
+                token = await BambuCloudUtilities.UseToken(FarmAPIConfiguration.BambuCloudCredentials ?? throw new Exception("BambuCloudCredentials is expected to be provided!"));
 
-            await MQTTConnectionPool.Connect(credentials);
+                try
+                {
+                    using var tokenFile = new StreamWriter(File.OpenWrite(".bambuLabToken"));
+                    tokenFile.Write(token);
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Failed to store BambuLab Token: {ex}");
+                }
+            }
+
+            var mqtt = await BambuCloudUtilities.FetchMQTTCredentials(token);
+
+            await MQTTConnectionPool.Connect(mqtt);
             await MQTTConnectionPool.RebaseMachines();       
         }
     }

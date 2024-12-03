@@ -13,7 +13,7 @@ namespace FarmAPI.Machines.BambuLab
 {
     public record BambuMachineConfiguration(string SerialNumber, string AccessCode, string IPAddress, string? Nickname = null) : MachineConfiguration(MachineConfigurationKind.BambuLab);
 
-    public class BambuMachine : Machine, IMachineSliceable, IMachinePrintable
+    public class BambuMachine : Machine, IMachineSliceable, IMachinePrintable, IMachineControllable
     {
         public string SerialNumber { get; }
 
@@ -391,6 +391,21 @@ namespace FarmAPI.Machines.BambuLab
             throw new NotSupportedException("Machine status must be Printing or Errored!");
         }
 
+        public Task Stop()
+        {
+            return MQTTConnectionPool.Request(this.SerialNumber, BambuMQTTCommands.Stop);
+        }
+
+        public Task Resume()
+        {
+            return MQTTConnectionPool.Request(this.SerialNumber, BambuMQTTCommands.Resume);
+        }
+
+        public Task Pause()
+        {
+            return MQTTConnectionPool.Request(this.SerialNumber, BambuMQTTCommands.Pause);
+        }
+
         public static string GetModel(string serialNumber)
         {
             return serialNumber[..3] switch
@@ -414,6 +429,5 @@ namespace FarmAPI.Machines.BambuLab
                 _ => new MachineSize(256, 256, 256)
             };
         }
-
     }
 }

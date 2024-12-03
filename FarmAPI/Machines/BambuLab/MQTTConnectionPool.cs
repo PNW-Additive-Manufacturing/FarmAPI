@@ -167,6 +167,10 @@ namespace FarmAPI.Machines.BambuLab
 
         public static string GetVersion { get; } = $"{{\"info\": {{\"sequence_id\": \"0\", \"command\": \"get_version\"}}}}";
 
+        public static string Pause { get; } = $"{{\"print\": {{\"sequence_id\": \"0\", \"command\": \"pause\"}}}}";
+        public static string Resume { get; } = $"{{\"print\": {{\"sequence_id\": \"0\", \"command\": \"resume\"}}}}";
+        public static string Stop { get; } = $"{{\"print\": {{\"sequence_id\": \"0\", \"command\": \"stop\"}}}}";
+
         public static string Print(string filename, FilamentLocation location, bool levelBed = true, bool vibration = true, bool flowCalibration = true, bool layerInspection = true)
         {
             return "{\"print\":{\"sequence_id\":0,\"command\":\"project_file\",\"param\":\"Metadata/plate_1.gcode\",\"subtask_name\":\"" + filename + "\",\"url\":\"ftp://" + filename + "\",\"timelapse\":false,\"bed_leveling\":" + (levelBed ? "true" : "false") + ",\"flow_cali\":" + (flowCalibration ? "true" : "false") + ",\"vibration_cali\":" + (vibration ? "true" : "false") + ",\"layer_inspect\":" + (layerInspection ? "true" : "false") + ",\"use_ams\":" + (location.IsInAMS ? "true" : "false") + ", \"ams_mapping\": [" + ((location.AMS * 3) + location.GlobalSlot) + "]}}";

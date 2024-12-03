@@ -43,3 +43,5 @@ msbuild.err
 msbuild.wrn
 
 machines_config.json
+
+.bambuLabToken
